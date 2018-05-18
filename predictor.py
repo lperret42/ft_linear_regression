@@ -1,32 +1,10 @@
-#!/usr/bin/python
+#!/Users/lperret/.brew/Cellar/python/3.6.5/bin/python3.6
 # -*- coding: utf-8 -*-
 
 from pkg_resources import resource_filename
-
 import csv
-import matplotlib.pyplot as plt
-import numpy as np
 
-from src.linear_function import LinearFunction
-
-def is_float(string):
-    if len(string) == 0:
-        return False
-    if len(string) == 1:
-        if not string[0] in "0123456789":
-            return False
-        else:
-            return True
-    if len(string) == 2 and (string == "-." or string == ".-"):
-        return False
-    if string.count('.') > 1:
-        return False
-    if '-' in string[1:]:
-        return False
-    for c in string:
-        if not (c == '-' or c == '.' or c in "0123456789"):
-            return False
-    return True
+from src.utils import linear_function, is_float
 
 def get_params():
     params_file = resource_filename(__name__, 'params.csv')
@@ -39,7 +17,6 @@ def get_params():
 
 def loop_on_input():
     theta0, theta1 = get_params()
-    linear_function = LinearFunction(theta0, theta1)
     while True:
         print("Please enter a mileage :")
         string = input()
@@ -49,10 +26,10 @@ def loop_on_input():
             print("Mileage must be a float number :")
             continue
         nb = float(string)
-        if nb <= 0:
+        if nb < 0:
             print("Mileage must be positive")
             continue
-        price = linear_function.evaluate(nb)
+        price = linear_function(theta0, theta1, nb)
         price = int(price)
         print("This car worth {} euros".format(price))
 

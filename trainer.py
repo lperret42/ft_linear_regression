@@ -1,54 +1,50 @@
-#!/usr/bin/python
+#!/Users/lperret/.brew/Cellar/python/3.6.5/bin/python3.6
 
-import argparse
-from pkg_resources import resource_filename
-import csv
-import matplotlib.pyplot as plt
-import numpy as np
-
-import numpy as np
-import matplotlib.pyplot as plt
-import numpy as np
 import time
 import threading
+import matplotlib.pyplot as plt
 
-from src.linear_function import LinearFunction
 from src.linear_regressor import LinearRegressor
-
-def parse_arguments():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--show", action="store_true",
-        help="display the data and the linear regression result on a graph")
-    args = parser.parse_args()
-
-    return args
-
-def get_data():
-    params_file = resource_filename(__name__, 'data.csv')
-    with open(params_file, 'r') as csvfile:
-        lines  = [line for line in csv.reader(csvfile, delimiter=',')][1:]
-        csvfile.close()
-
-    lines = [list(map(float, line)) for line in lines]
-    return lines
+from src.utils import parse_arguments, get_data, linear_function, get_cost,\
+    print_comparison, get_solution, quit_figure, is_float, manage_learning_rate
 
 def main():
     args = parse_arguments()
     data = get_data()
-    X = [x for x, y in data]
-    Y = [y for x, y in data]
-    linear_regressor = LinearRegressor(X, Y)
+    X, Y = [x for x, _ in data], [y for _, y in data]
+    learning_rate = manage_learning_rate(args.learning_rate)
+    if not (learning_rate > 0 and learning_rate <= 1):
+        print("Learning rate must be a float in ]0;1]")
+        return
+    linear_regressor = LinearRegressor(X, Y, learning_rate=learning_rate)
     if args.show:
-        linear_function = LinearFunction(linear_regressor.theta0, linear_regressor.theta1)
         line_x = [min(linear_regressor.X), max(linear_regressor.X)]
-        line_y = [linear_function.evaluate(i) for i in line_x]
+        line_y = [linear_function(linear_regressor.theta0,
+                        linear_regressor.theta1, x) for x in line_x]
         plt.plot(line_x, line_y, 'b')
-        plt.plot(linear_regressor.X, linear_regressor.Y, 'ro'),
-        t = threading.Thread(target=linear_regressor.train, kwargs={'max_iter':10e6,'show':True})
+        plt.plot(linear_regressor.X, linear_regressor.Y, 'ro')
+        t = threading.Thread(target=linear_regressor.train,
+                kwargs={'max_iter':10e6, 'show':True, 'print_cost':args.cost})
         t.start()
+        cid = plt.gcf().canvas.mpl_connect('key_press_event', quit_figure)
         plt.show()
     else:
-        linear_regressor.train()
+        linear_regressor.train(print_cost=args.cost)
+
+    if args.nb_iter:
+        if args.cost:
+            print("")
+        print("The algorithm has converged after {} iterations".format(linear_regressor.nb_iter))
+        if args.solution:
+            print("")
+    if args.solution:
+        linear_regression_cost = get_cost(linear_regressor.theta0,
+                linear_regressor.theta1, X, Y)
+        real_theta0, real_theta1 = get_solution(X, Y)
+        real_cost =  get_cost(real_theta0, real_theta1, X, Y)
+        print_comparison(linear_regressor.theta0, linear_regressor.theta1,
+            linear_regression_cost, real_theta0, real_theta1, real_cost)
+
 
 if __name__ == '__main__':
     main()
